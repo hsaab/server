@@ -109,4 +109,30 @@ down:
 			rm -f $$pidfile; \
 		fi; \
 	done
+	@pids=$$(pgrep -f 'dotnet watch --project src/Api/Api.csproj' 2>/dev/null || true); \
+	if [ -n "$$pids" ]; then \
+		echo "Stopping stale API watch processes: $$pids"; \
+		for pid in $$pids; do \
+			pkill -P $$pid 2>/dev/null || true; \
+			kill $$pid 2>/dev/null || true; \
+		done; \
+		sleep 1; \
+		pids=$$(pgrep -f 'dotnet watch --project src/Api/Api.csproj' 2>/dev/null || true); \
+		if [ -n "$$pids" ]; then \
+			echo "Force stopping API watch processes: $$pids"; \
+			pkill -9 -P $$pids 2>/dev/null || true; \
+			pkill -9 -f 'dotnet watch --project src/Api/Api.csproj' 2>/dev/null || true; \
+		fi; \
+	fi
+	@pids=$$(lsof -ti :4000 -sTCP:LISTEN 2>/dev/null || true); \
+	if [ -n "$$pids" ]; then \
+		echo "Stopping processes on port 4000: $$pids"; \
+		kill $$pids 2>/dev/null || true; \
+		sleep 1; \
+		pids=$$(lsof -ti :4000 -sTCP:LISTEN 2>/dev/null || true); \
+		if [ -n "$$pids" ]; then \
+			echo "Force stopping port 4000 processes: $$pids"; \
+			kill -9 $$pids 2>/dev/null || true; \
+		fi; \
+	fi
 	@echo "Demo is down."
