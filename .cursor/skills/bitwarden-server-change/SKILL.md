@@ -5,6 +5,8 @@ description: Guides implementation of Bitwarden server C#/.NET changes. Use when
 
 # Bitwarden Server Change
 
+For end-to-end feature work, start with `build-feature` or `build-feature-e2e`. For richer CQS, DI, and testing detail, also read `.claude/skills/writing-server-code/SKILL.md`.
+
 ## Workflow
 
 1. Identify the owning project in `bitwarden-server.slnx` and read nearby source plus matching tests.

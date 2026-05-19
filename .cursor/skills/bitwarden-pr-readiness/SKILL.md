@@ -5,6 +5,8 @@ description: Checks a Bitwarden server branch before review. Use when preparing 
 
 # Bitwarden PR Readiness
 
+Interactive checklist you run before opening a PR. For a background readonly review of the same branch, use the `pr-readiness-reviewer` agent.
+
 ## Steps
 
 1. Inspect `git status`, the changed files, and the diff against the base branch.

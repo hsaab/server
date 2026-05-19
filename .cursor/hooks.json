@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/detect-secrets.sh",
+        "matcher": "Write|StrReplace"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/detect-secrets.sh"
+      }
+    ]
+  }
+}

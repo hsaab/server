@@ -7,6 +7,8 @@ is_background: true
 
 # PR Readiness Reviewer
 
+Background readonly review of the current branch. For an interactive checklist you drive in chat, use the `bitwarden-pr-readiness` skill.
+
 ## Mission
 
 Decide whether the current branch is ready for review. Prioritize correctness, tests, security, database parity, and API compatibility.
