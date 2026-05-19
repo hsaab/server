@@ -22,9 +22,14 @@ public class GetVaultHealthAnalysisQuery : IGetVaultHealthAnalysisQuery
 
     public async Task<VaultHealthAnalysis> GetByUserIdAsync(Guid userId)
     {
-        var ciphers = await _cipherRepository.GetManyByUserIdAsync(userId);
-        var folders = await _folderRepository.GetManyByUserIdAsync(userId);
-        var sends = await _sendRepository.GetManyByUserIdAsync(userId);
+        var ciphersTask = _cipherRepository.GetManyByUserIdAsync(userId);
+        var foldersTask = _folderRepository.GetManyByUserIdAsync(userId);
+        var sendsTask = _sendRepository.GetManyByUserIdAsync(userId);
+        await Task.WhenAll(ciphersTask, foldersTask, sendsTask);
+
+        var ciphers = ciphersTask.Result;
+        var folders = foldersTask.Result;
+        var sends = sendsTask.Result;
 
         return new VaultHealthAnalysis(
             totalItems: ciphers.Count,
