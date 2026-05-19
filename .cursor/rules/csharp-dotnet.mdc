@@ -1,0 +1,18 @@
+---
+description: C# and .NET conventions for Bitwarden server code
+globs: **/*.cs
+alwaysApply: false
+---
+
+# C# and .NET Conventions
+
+- Target the SDK in `global.json` and the shared settings in `Directory.Build.props`; this repo uses .NET 10, nullable reference types, implicit usings, and warnings as errors.
+- Use file-scoped namespaces and 4-space indentation for C#.
+- Prefer `var` in the style already established by `.editorconfig`.
+- Give async methods an `Async` suffix.
+- Use `required` for required initialization and use null-forgiving only when the invariant is clear.
+- Use `CoreHelpers.GenerateComb()` for entity IDs instead of `Guid.NewGuid()`.
+- Prefer `TryAddScoped`, `TryAddTransient`, or `TryAddSingleton` for dependency injection registrations unless nearby code shows a deliberate exception.
+- Controller actions should return `ActionResult<T>` when returning API responses.
+- For new feature logic, prefer command/query classes over growing broad entity services. When modifying existing service-based code, follow the local pattern unless the user asks for a refactor.
+- Use `IFusionCache` for new cache work and consult `src/Core/Utilities/CACHING.md`; do not add caching unless the requirement calls for it.

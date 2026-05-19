@@ -1,0 +1,34 @@
+---
+description: Core Bitwarden server repo context, layout, commands, and safety principles
+alwaysApply: true
+---
+
+# Bitwarden Server Context
+
+Read `README.md`, `CONTRIBUTING.md`, and `.github/PULL_REQUEST_TEMPLATE.md` before broad changes or reviews.
+
+## Repo Layout
+
+- `bitwarden-server.slnx` is the main solution.
+- `src/` contains AGPL server projects: API, Identity, Core, Billing, Events, Notifications, infrastructure, and shared web code.
+- `bitwarden_license/` contains commercial source and test projects.
+- `test/` mirrors source projects with `.Test` and `.IntegrationTest` projects.
+- `util/` contains migration, setup, seeding, and operational utilities.
+- `AppHost/` supports local orchestration.
+
+## Commands
+
+- Build: `dotnet build bitwarden-server.slnx`
+- Test everything: `dotnet test bitwarden-server.slnx`
+- Test one project: `dotnet test test/Core.Test/Core.Test.csproj`
+- Run API locally: `dotnet run --project src/Api`
+- MSSQL migrations: `pwsh dev/migrate.ps1`
+- OpenAPI generation: `pwsh dev/generate_openapi_files.ps1`
+
+## Safety Principles
+
+- Preserve Bitwarden's zero-knowledge model. Never expose vault data, keys, passwords, tokens, or PII in logs, errors, tests, or examples.
+- Prefer small, scoped changes that follow the nearest existing pattern.
+- Add or update focused xUnit tests for new behavior.
+- Treat warnings as errors and respect `.editorconfig`.
+- Never add `#region`; refactor complex code into clearer types or methods.

@@ -1,0 +1,16 @@
+---
+description: Testing conventions for Bitwarden server unit and integration tests
+globs: **/*Test*.cs, test/**/*.cs, bitwarden_license/test/**/*.cs
+alwaysApply: false
+---
+
+# Testing Conventions
+
+- Use xUnit, NSubstitute, AutoFixture, and project helpers rather than introducing new test frameworks.
+- Prefer `[Theory, BitAutoData]` for unit tests that need generated data.
+- Use `SutProvider<T>` for automatic subject-under-test wiring when the surrounding tests use it.
+- Use `Substitute.For<T>()` for mocks.
+- Integration tests that verify repository or database behavior should use `[DatabaseTheory, DatabaseData]` so behavior runs across configured providers.
+- Keep tests close to the source project shape: `src/Core` behavior belongs in `test/Core.Test` or `test/Core.IntegrationTest`.
+- Test the observable behavior and edge cases introduced by the change, not private implementation details.
+- Include security-sensitive assertions when touching authentication, authorization, encryption, logging, tokens, secrets, or vault data.

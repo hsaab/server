@@ -1,0 +1,15 @@
+---
+description: Security and privacy checklist for auth, crypto, logging, and vault data changes
+globs: src/**/*Auth*.cs, src/**/*Identity*.cs, src/**/*Crypto*.cs, src/**/*Token*.cs, src/**/*Key*.cs, src/**/*Password*.cs, src/**/*Cipher*.cs, src/**/*Vault*.cs, bitwarden_license/src/**/*.cs
+alwaysApply: false
+---
+
+# Security-Sensitive Code
+
+- Preserve the zero-knowledge design. Server code must not learn plaintext vault data or private keys.
+- Never log PII, secrets, tokens, passwords, key material, vault contents, or decrypted values.
+- Prefer structured logs with stable templates and non-sensitive identifiers.
+- Keep validation, authorization, and rate limiting near the boundary where input enters the system.
+- Treat token, key, encryption, SSO, SCIM, emergency access, and organization-policy changes as high risk.
+- When changing security-sensitive behavior, add focused tests for denial paths, tenant or organization boundaries, and invalid input.
+- If a change weakens compatibility, cryptographic assumptions, or authorization boundaries, stop and ask for explicit confirmation.

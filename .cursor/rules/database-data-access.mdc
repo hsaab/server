@@ -1,0 +1,37 @@
+---
+description: Database, Dapper, EF Core, and migration rules for Bitwarden server
+globs: **/*.sql, src/Sql/**/*.sql, util/Migrator/**/*.sql, src/Infrastructure.Dapper/**/*.cs, src/Infrastructure.EntityFramework/**/*.cs, bitwarden_license/src/Commercial.Infrastructure.EntityFramework/**/*.cs
+alwaysApply: false
+---
+
+# Database and Data Access
+
+Bitwarden uses two runtime data access paths:
+
+- MSSQL uses Dapper and stored procedures.
+- PostgreSQL, MySQL, and SQLite use Entity Framework Core.
+
+## Repository Changes
+
+- New repository behavior usually needs both Dapper and EF Core implementations unless the feature is explicitly EF-only.
+- Dapper repository methods should stay thin: map parameters, call stored procedures through the existing provider pattern, and map results.
+- EF repository behavior must match stored-procedure behavior, including filtering, ordering, null handling, and side effects.
+- Use `[DatabaseTheory, DatabaseData]` integration tests for cross-provider parity.
+
+## MSSQL and Migrations
+
+- `src/Sql/dbo` is the schema source of truth.
+- `util/Migrator/DbScripts` contains chronological MSSQL migrations named `YYYY-MM-DD_##_Description.sql`.
+- SSDT stored-procedure files use plain `CREATE PROCEDURE`; migration scripts use `CREATE OR ALTER PROCEDURE`.
+- Stored procedures should start with `SET NOCOUNT ON`.
+- Add new procedure parameters with defaults when preserving compatibility.
+- Use idempotent guards such as `IF NOT EXISTS` or `COL_LENGTH(...)` for schema changes.
+- Use constraint names like `PK_Table`, `FK_Child_Parent`, `IX_Table_Column`, and `DF_Table_Column`.
+- Avoid large-table index work in normal migrations; ask for confirmation and consider manual scripts.
+
+## EF Core
+
+- Keep entity mapping in `EntityTypeConfiguration<T>` classes instead of inline `OnModelCreating` configuration.
+- Generate provider migrations with `pwsh ef_migrate.ps1 <MigrationName>` when needed.
+- EF migration names should match the MSSQL migration description.
+- Do not configure ID columns with `ValueGeneratedOnAdd()`; IDs come from application code via `CoreHelpers.GenerateComb()`.
