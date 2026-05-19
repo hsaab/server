@@ -8,6 +8,7 @@ APPHOST_LOG := $(DEMO_DIR)/apphost.log
 API_LOG := $(DEMO_DIR)/api.log
 TOKEN_LOG := $(DEMO_DIR)/token.log
 TOKEN_FILE := $(DEMO_DIR)/token.json
+AUTH_HASH_FILE := dev/demo.auth-hash
 
 API_URL := http://localhost:4000
 IDENTITY_URL := http://localhost:33656
@@ -15,6 +16,8 @@ APPHOST_DASHBOARD_URL := https://localhost:17271
 APPHOST_API_PORT := 4010
 DEMO_EMAIL := vaulthealth@bw.test
 DEMO_PASSWORD := asdfasdfasdf
+TOKEN_POLL_INTERVAL := 0.5
+TOKEN_POLL_MAX := 360
 
 .PHONY: up down
 
@@ -33,16 +36,29 @@ up:
 			dotnet run --project AppHost/AppHost.csproj > $(APPHOST_LOG) 2>&1 & \
 		echo $$! > $(APPHOST_PID); \
 	fi
-	@if [ -f $(TOKEN_PID) ] && kill -0 $$(cat $(TOKEN_PID)) 2>/dev/null; then \
+	@if python3 -c 'import json,base64,time,sys; \
+t=json.load(open("$(TOKEN_FILE)")); \
+p=t["access_token"].split(".")[1]; p+="="*(-len(p)%4); \
+exp=json.loads(base64.urlsafe_b64decode(p)).get("exp",0); \
+sys.exit(0 if exp>time.time()+30 else 1)' 2>/dev/null; then \
+		echo "Demo token still valid ($(TOKEN_FILE))."; \
+	elif [ -f $(TOKEN_PID) ] && kill -0 $$(cat $(TOKEN_PID)) 2>/dev/null; then \
 		echo "Demo token watcher already running (pid $$(cat $(TOKEN_PID)))."; \
 	else \
 		echo "Starting demo token watcher..."; \
-		rm -f $(TOKEN_FILE); \
 		( \
-			echo "Waiting for $(DEMO_EMAIL) to be seeded and accepted by Identity..."; \
-			login_password=$$(dotnet run --project util/SeederUtility -- auth-hash --email "$(DEMO_EMAIL)" --password "$(DEMO_PASSWORD)" --kdf-iterations 5000 2>/dev/null); \
+			echo "Waiting for Identity and $(DEMO_EMAIL)..."; \
+			login_password=$$(grep -v '^#' $(AUTH_HASH_FILE) | tr -d '[:space:]'); \
+			if [ -z "$$login_password" ]; then \
+				echo "Missing auth hash in $(AUTH_HASH_FILE)."; \
+				exit 1; \
+			fi; \
 			i=0; \
-			while [ $$i -lt 180 ]; do \
+			while [ $$i -lt $(TOKEN_POLL_MAX) ]; do \
+				i=$$((i + 1)); \
+				if [ $$i -eq 1 ] || [ $$((i % 10)) -eq 0 ]; then \
+					echo "Token attempt $$i/$(TOKEN_POLL_MAX)..."; \
+				fi; \
 				if curl --max-time 5 -fsS -X POST "$(IDENTITY_URL)/connect/token" \
 					-H "Content-Type: application/x-www-form-urlencoded" \
 					-H "Bitwarden-Client-Version: 2026.5.0" \
@@ -54,16 +70,15 @@ up:
 					--data-urlencode "grant_type=password" \
 					--data-urlencode "username=$(DEMO_EMAIL)" \
 					--data-urlencode "password=$$login_password" \
-					-o $(TOKEN_FILE) >/dev/null 2>&1; then \
+					-o $(TOKEN_FILE) 2>>$(TOKEN_LOG); then \
 					echo "Demo token ready at $(TOKEN_FILE)."; \
 					exit 0; \
 				fi; \
-				i=$$((i + 1)); \
-				sleep 2; \
+				sleep $(TOKEN_POLL_INTERVAL); \
 			done; \
-			echo "Timed out waiting for seeded demo account."; \
+			echo "Timed out waiting for seeded demo account after $$i attempts."; \
 			exit 1; \
-		) > $(TOKEN_LOG) 2>&1 & \
+		) >> $(TOKEN_LOG) 2>&1 & \
 		echo $$! > $(TOKEN_PID); \
 	fi
 	@if [ -f $(API_PID) ] && kill -0 $$(cat $(API_PID)) 2>/dev/null; then \

@@ -1,0 +1,5 @@
+# Master password auth hash for vaulthealth@bw.test (KDF iterations: 5000).
+# Deterministic — regenerate only if demo credentials change:
+#   dotnet run --project util/SeederUtility -- auth-hash \
+#     --email vaulthealth@bw.test --password asdfasdfasdf --kdf-iterations 5000
+tdqfpSPOm35TX5RhTdz2DA3/KNM9hEojZE0R8u/pfjE=
