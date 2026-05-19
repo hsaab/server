@@ -3,10 +3,16 @@
 var builder = DistributedApplication.CreateBuilder(args);
 var secretsSetup = builder.ConfigureSecrets();
 var db = builder.AddSqlServerDatabaseResource();
-builder.ConfigureMigrations()
+var migrations = builder.ConfigureMigrations()
     .WaitFor(db)
     .ExcludeFromManifest()
     .WaitForCompletion(secretsSetup);
+if (builder.ShouldSeedDemoData())
+{
+    builder.ConfigureDemoSeed()
+        .WaitFor(db)
+        .WaitForCompletion(migrations);
+}
 var azurite = builder.ConfigureAzurite();
 var mail = builder.ConfigureMailCatcher();
 var (_, api, billing, _, _) = builder.ConfigureServices(db, secretsSetup, mail, azurite);

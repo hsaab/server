@@ -17,6 +17,14 @@ public class IndividualCommand
 
             using var deps = SeederServiceFactory.Create(new SeederServiceOptions { EnableMangling = args.Mangle });
 
+            if (args.SkipIfExists && args.Email is not null &&
+                deps.Db.Users.Any(user => user.Email == args.Email))
+            {
+                ConsoleOutput.PrintRow("Email", args.Email);
+                Console.Error.WriteLine("Seed skipped because the user already exists.");
+                return;
+            }
+
             var result = ConsoleProgressReporter.RunWithProgress(
                 deps.ToDependencies(),
                 d => new IndividualUserRecipe(d).Seed(args.ToOptions()));

@@ -90,4 +90,7 @@ public class Program
 
     [Subcommand]
     public IndividualCommand Individual { get; set; } = null!;
+
+    [Subcommand]
+    public AuthHashCommand AuthHash { get; set; } = null!;
 }

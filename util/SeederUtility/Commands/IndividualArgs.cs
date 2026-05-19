@@ -33,6 +33,9 @@ public class IndividualArgs : IArgumentModel
     [Option("mangle", Description = "Enable ID mangling for test isolation")]
     public bool Mangle { get; set; }
 
+    [Option("skip-if-exists", Description = "Skip seeding when the requested email already exists")]
+    public bool SkipIfExists { get; set; }
+
     public void Validate()
     {
         var sub = Subscription?.ToLowerInvariant();

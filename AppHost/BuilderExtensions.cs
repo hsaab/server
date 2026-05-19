@@ -34,6 +34,17 @@ public static class BuilderExtensions
             .AddExecutable("run-db-migrations", "pwsh", builder.Required("WorkingDirectory"), migrationArgs.ToArray());
     }
 
+    public static IResourceBuilder<ExecutableResource> ConfigureDemoSeed(this IDistributedApplicationBuilder builder)
+    {
+        return builder
+            .AddExecutable("seed-demo-data", "pwsh", builder.Required("WorkingDirectory"), "-File",
+                builder.Required("Scripts:DemoSeed"))
+            .ExcludeFromManifest();
+    }
+
+    public static bool ShouldSeedDemoData(this IDistributedApplicationBuilder builder) =>
+        builder.Configuration["Demo:SeedOnStartup"]?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+
     public static IResourceBuilder<SqlServerDatabaseResource> AddSqlServerDatabaseResource(
         this IDistributedApplicationBuilder builder)
     {
