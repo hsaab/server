@@ -19,7 +19,10 @@ DEMO_PASSWORD := asdfasdfasdf
 TOKEN_POLL_INTERVAL := 0.5
 TOKEN_POLL_MAX := 360
 
-.PHONY: up down
+.PHONY: up down status open-dashboard
+
+# AppHost in the background does not auto-open a browser (unlike `cd AppHost && dotnet run`).
+# After make up, use `make open-dashboard` or the printed login URL.
 
 up:
 	@mkdir -p $(DEMO_DIR)
@@ -28,12 +31,15 @@ up:
 		echo "Install Rust/Cargo, then run make up again."; \
 		exit 1; \
 	fi
-	@if [ -f $(APPHOST_PID) ] && kill -0 $$(cat $(APPHOST_PID)) 2>/dev/null; then \
-		echo "AppHost already running (pid $$(cat $(APPHOST_PID)))."; \
+	@if lsof -ti :17271 -sTCP:LISTEN >/dev/null 2>&1; then \
+		echo "AppHost already running (dashboard on $(APPHOST_DASHBOARD_URL))."; \
+	elif [ -f $(APPHOST_PID) ] && kill -0 $$(cat $(APPHOST_PID)) 2>/dev/null; then \
+		echo "AppHost already starting (pid $$(cat $(APPHOST_PID)))."; \
 	else \
 		echo "Starting AppHost support stack..."; \
+		: > $(APPHOST_LOG); \
 		DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development Services__api__BasePort=$(APPHOST_API_PORT) Demo__SeedOnStartup=true \
-			dotnet run --project AppHost/AppHost.csproj > $(APPHOST_LOG) 2>&1 & \
+			dotnet run --project AppHost/AppHost.csproj --launch-profile https > $(APPHOST_LOG) 2>&1 & \
 		echo $$! > $(APPHOST_PID); \
 	fi
 	@if python3 -c 'import json,base64,time,sys; \
@@ -81,21 +87,87 @@ sys.exit(0 if exp>time.time()+30 else 1)' 2>/dev/null; then \
 		) >> $(TOKEN_LOG) 2>&1 & \
 		echo $$! > $(TOKEN_PID); \
 	fi
-	@if [ -f $(API_PID) ] && kill -0 $$(cat $(API_PID)) 2>/dev/null; then \
-		echo "API watch already running (pid $$(cat $(API_PID)))."; \
+	@if lsof -ti :4000 -sTCP:LISTEN >/dev/null 2>&1; then \
+		echo "API already running on $(API_URL)."; \
+	elif [ -f $(API_PID) ] && kill -0 $$(cat $(API_PID)) 2>/dev/null; then \
+		echo "API already starting (pid $$(cat $(API_PID)))."; \
 	else \
-		echo "Starting API watch..."; \
+		echo "Starting API on $(API_URL)..."; \
+		: > $(API_LOG); \
 		DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development \
-			dotnet watch --project src/Api/Api.csproj run --launch-profile Api > $(API_LOG) 2>&1 & \
+			dotnet run --project src/Api/Api.csproj --launch-profile Api > $(API_LOG) 2>&1 & \
 		echo $$! > $(API_PID); \
 	fi
+	@echo "Waiting for API on $(API_URL)..."
+	@i=0; \
+	while [ $$i -lt 90 ]; do \
+		if lsof -ti :4000 -sTCP:LISTEN >/dev/null 2>&1; then \
+			echo "API is ready."; \
+			break; \
+		fi; \
+		i=$$((i + 1)); \
+		sleep 2; \
+	done; \
+	if ! lsof -ti :4000 -sTCP:LISTEN >/dev/null 2>&1; then \
+		echo "API did not start. Check $(API_LOG) (dotnet watch is broken on macOS; make up uses dotnet run)."; \
+		exit 1; \
+	fi
 	@echo ""
-	@echo "Local app is starting."
+	@echo "Local app is ready."
 	@echo "Account: $(DEMO_EMAIL) / $(DEMO_PASSWORD)"
-	@echo "App dashboard: $(APPHOST_DASHBOARD_URL)"
+	@dashboard_url=$$(grep -Eo 'https://localhost:17271/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
+	if [ -n "$$dashboard_url" ]; then \
+		echo "App dashboard: $$dashboard_url"; \
+	else \
+		echo "App dashboard: $(APPHOST_DASHBOARD_URL) (login URL appears in $(APPHOST_LOG) after AppHost finishes building)"; \
+		echo "  Run: make open-dashboard   or: tail -f $(APPHOST_LOG)"; \
+	fi
 	@echo "API log: $(API_LOG)"
 	@echo "AppHost log: $(APPHOST_LOG)"
 	@echo "Token log: $(TOKEN_LOG)"
+	@if grep -q 'No trusted Aspire development certificate' $(APPHOST_LOG) 2>/dev/null || \
+		! dotnet dev-certs https --check >/dev/null 2>&1; then \
+		echo ""; \
+		echo "If the dashboard shows a certificate warning, run:"; \
+		echo "  dotnet dev-certs https --trust"; \
+		echo "  dotnet dev-certs https --trust --import Aspire"; \
+	fi
+
+open-dashboard:
+	@i=0; \
+	while [ $$i -lt 180 ]; do \
+		dashboard_url=$$(grep -Eo 'https://localhost:17271/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
+		if [ -n "$$dashboard_url" ] && lsof -ti :17271 -sTCP:LISTEN >/dev/null 2>&1; then \
+			echo "Opening $$dashboard_url"; \
+			open "$$dashboard_url"; \
+			exit 0; \
+		fi; \
+		i=$$((i + 1)); \
+		sleep 2; \
+	done; \
+	echo "Dashboard not ready. Run make up, wait for AppHost, then try again."; \
+	echo "  tail -f $(APPHOST_LOG)"; \
+	exit 1
+
+status:
+	@echo "Demo status"
+	@for pair in \
+		"Aspire dashboard:17271" \
+		"Identity:33656" \
+		"API (watch):4000" \
+		"AppHost API:$(APPHOST_API_PORT)"; do \
+		name=$${pair%%:*}; \
+		port=$${pair##*:}; \
+		if lsof -ti :$$port -sTCP:LISTEN >/dev/null 2>&1; then \
+			echo "  $$name: up (:$$port)"; \
+		else \
+			echo "  $$name: down (:$$port)"; \
+		fi; \
+	done
+	@dashboard_url=$$(grep -Eo 'https://localhost:17271/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
+	if [ -n "$$dashboard_url" ]; then \
+		echo "  Dashboard login: $$dashboard_url"; \
+	fi
 
 down:
 	@for pidfile in $(TOKEN_PID) $(API_PID) $(APPHOST_PID); do \
@@ -109,20 +181,15 @@ down:
 			rm -f $$pidfile; \
 		fi; \
 	done
-	@pids=$$(pgrep -f 'dotnet watch --project src/Api/Api.csproj' 2>/dev/null || true); \
+	@pids=$$(pgrep -f 'src/Api/Api.csproj' 2>/dev/null || true); \
 	if [ -n "$$pids" ]; then \
-		echo "Stopping stale API watch processes: $$pids"; \
+		echo "Stopping stale API processes: $$pids"; \
 		for pid in $$pids; do \
 			pkill -P $$pid 2>/dev/null || true; \
 			kill $$pid 2>/dev/null || true; \
 		done; \
 		sleep 1; \
-		pids=$$(pgrep -f 'dotnet watch --project src/Api/Api.csproj' 2>/dev/null || true); \
-		if [ -n "$$pids" ]; then \
-			echo "Force stopping API watch processes: $$pids"; \
-			pkill -9 -P $$pids 2>/dev/null || true; \
-			pkill -9 -f 'dotnet watch --project src/Api/Api.csproj' 2>/dev/null || true; \
-		fi; \
+		pkill -9 -f 'src/Api/Api.csproj' 2>/dev/null || true; \
 	fi
 	@pids=$$(lsof -ti :4000 -sTCP:LISTEN 2>/dev/null || true); \
 	if [ -n "$$pids" ]; then \
@@ -131,7 +198,6 @@ down:
 		sleep 1; \
 		pids=$$(lsof -ti :4000 -sTCP:LISTEN 2>/dev/null || true); \
 		if [ -n "$$pids" ]; then \
-			echo "Force stopping port 4000 processes: $$pids"; \
 			kill -9 $$pids 2>/dev/null || true; \
 		fi; \
 	fi
