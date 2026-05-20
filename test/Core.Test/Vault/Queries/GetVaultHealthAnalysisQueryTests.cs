@@ -89,4 +89,50 @@ public class GetVaultHealthAnalysisQueryTests
             .Received(1)
             .GetManyByUserIdAsync(user.Id);
     }
+
+    [Theory, BitAutoData]
+    public async Task GetByUserIdAsync_StartsRepositoryCallsBeforeAwaitingResults(
+        SutProvider<GetVaultHealthAnalysisQuery> sutProvider,
+        User user)
+    {
+        var ciphersCompletion = new TaskCompletionSource<ICollection<CipherDetails>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var foldersCompletion = new TaskCompletionSource<ICollection<Folder>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var sendsCompletion = new TaskCompletionSource<ICollection<Send>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        sutProvider.GetDependency<ICipherRepository>()
+            .GetManyByUserIdAsync(user.Id)
+            .Returns(ciphersCompletion.Task);
+        sutProvider.GetDependency<IFolderRepository>()
+            .GetManyByUserIdAsync(user.Id)
+            .Returns(foldersCompletion.Task);
+        sutProvider.GetDependency<ISendRepository>()
+            .GetManyByUserIdAsync(user.Id)
+            .Returns(sendsCompletion.Task);
+
+        var queryTask = sutProvider.Sut.GetByUserIdAsync(user.Id);
+
+        _ = sutProvider.GetDependency<ICipherRepository>()
+            .Received(1)
+            .GetManyByUserIdAsync(user.Id);
+        _ = sutProvider.GetDependency<IFolderRepository>()
+            .Received(1)
+            .GetManyByUserIdAsync(user.Id);
+        _ = sutProvider.GetDependency<ISendRepository>()
+            .Received(1)
+            .GetManyByUserIdAsync(user.Id);
+        Assert.False(queryTask.IsCompleted);
+
+        ciphersCompletion.SetResult(new List<CipherDetails>());
+        foldersCompletion.SetResult(new List<Folder>());
+        sendsCompletion.SetResult(new List<Send>());
+
+        var result = await queryTask;
+
+        Assert.Equal(0, result.TotalItems);
+        Assert.Equal(0, result.FolderCount);
+        Assert.Equal(0, result.SendCount);
+    }
 }
