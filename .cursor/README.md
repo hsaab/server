@@ -24,6 +24,16 @@ Both skills share [`.cursor/skills/build-feature/implementation-guide.md`](skill
 
 [`hooks/detect-secrets.sh`](hooks/detect-secrets.sh) scans file edits and shell commands for likely secrets. It warns via agent context but **never blocks** edits or commands. See [`hooks/README.md`](hooks/README.md) for setup and testing.
 
+## Local demo stack
+
+From the repo root: `make up`, `make status`, `make open-dashboard`, `make down`.
+
+Aspire dashboard: use the **`http://localhost:15055/login?t=...`** URL from `make status` or `make open-dashboard`.
+
+Cursor's embedded browser can show Chromium error **-202** on `https://localhost:17271` because it does not trust the local HTTPS dev cert. For demos, keep AppHost on the HTTP launch profile with `ASPIRE_ALLOW_UNSECURED_TRANSPORT=true`.
+
+Full ports, curl examples, and troubleshooting: **[`dev/DEMO.md`](../dev/DEMO.md)**.
+
 ## Demo Flow
 
 1. Ask Cursor to explain the repo layout. The always-on project rule should guide it to `bitwarden-server.slnx`, `src/`, `test/`, `util/`, and `bitwarden_license/`.
