@@ -12,7 +12,8 @@ AUTH_HASH_FILE := dev/demo.auth-hash
 
 API_URL := http://localhost:4000
 IDENTITY_URL := http://localhost:33656
-APPHOST_DASHBOARD_URL := https://localhost:17271
+APPHOST_DASHBOARD_PORT := 15055
+APPHOST_DASHBOARD_URL := http://localhost:$(APPHOST_DASHBOARD_PORT)
 APPHOST_API_PORT := 4010
 DEMO_EMAIL := vaulthealth@bw.test
 DEMO_PASSWORD := asdfasdfasdf
@@ -21,8 +22,7 @@ TOKEN_POLL_MAX := 360
 
 .PHONY: up down status open-dashboard
 
-# AppHost in the background does not auto-open a browser (unlike `cd AppHost && dotnet run`).
-# After make up, use `make open-dashboard` or the printed login URL.
+# See dev/DEMO.md for ports, curls, and troubleshooting.
 
 up:
 	@mkdir -p $(DEMO_DIR)
@@ -31,15 +31,15 @@ up:
 		echo "Install Rust/Cargo, then run make up again."; \
 		exit 1; \
 	fi
-	@if lsof -ti :17271 -sTCP:LISTEN >/dev/null 2>&1; then \
+	@if lsof -ti :$(APPHOST_DASHBOARD_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
 		echo "AppHost already running (dashboard on $(APPHOST_DASHBOARD_URL))."; \
 	elif [ -f $(APPHOST_PID) ] && kill -0 $$(cat $(APPHOST_PID)) 2>/dev/null; then \
 		echo "AppHost already starting (pid $$(cat $(APPHOST_PID)))."; \
 	else \
 		echo "Starting AppHost support stack..."; \
 		: > $(APPHOST_LOG); \
-		DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development Services__api__BasePort=$(APPHOST_API_PORT) Demo__SeedOnStartup=true \
-			dotnet run --project AppHost/AppHost.csproj --launch-profile https > $(APPHOST_LOG) 2>&1 & \
+		DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development ASPIRE_ALLOW_UNSECURED_TRANSPORT=true Services__api__BasePort=$(APPHOST_API_PORT) Demo__SeedOnStartup=true \
+			dotnet run --project AppHost/AppHost.csproj --launch-profile http > $(APPHOST_LOG) 2>&1 & \
 		echo $$! > $(APPHOST_PID); \
 	fi
 	@if python3 -c 'import json,base64,time,sys; \
@@ -115,7 +115,7 @@ sys.exit(0 if exp>time.time()+30 else 1)' 2>/dev/null; then \
 	@echo ""
 	@echo "Local app is ready."
 	@echo "Account: $(DEMO_EMAIL) / $(DEMO_PASSWORD)"
-	@dashboard_url=$$(grep -Eo 'https://localhost:17271/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
+	@dashboard_url=$$(grep -Eo 'http://localhost:$(APPHOST_DASHBOARD_PORT)/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
 	if [ -n "$$dashboard_url" ]; then \
 		echo "App dashboard: $$dashboard_url"; \
 	else \
@@ -125,19 +125,12 @@ sys.exit(0 if exp>time.time()+30 else 1)' 2>/dev/null; then \
 	@echo "API log: $(API_LOG)"
 	@echo "AppHost log: $(APPHOST_LOG)"
 	@echo "Token log: $(TOKEN_LOG)"
-	@if grep -q 'No trusted Aspire development certificate' $(APPHOST_LOG) 2>/dev/null || \
-		! dotnet dev-certs https --check >/dev/null 2>&1; then \
-		echo ""; \
-		echo "If the dashboard shows a certificate warning, run:"; \
-		echo "  dotnet dev-certs https --trust"; \
-		echo "  dotnet dev-certs https --trust --import Aspire"; \
-	fi
 
 open-dashboard:
 	@i=0; \
 	while [ $$i -lt 180 ]; do \
-		dashboard_url=$$(grep -Eo 'https://localhost:17271/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
-		if [ -n "$$dashboard_url" ] && lsof -ti :17271 -sTCP:LISTEN >/dev/null 2>&1; then \
+		dashboard_url=$$(grep -Eo 'http://localhost:$(APPHOST_DASHBOARD_PORT)/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
+		if [ -n "$$dashboard_url" ] && lsof -ti :$(APPHOST_DASHBOARD_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
 			echo "Opening $$dashboard_url"; \
 			open "$$dashboard_url"; \
 			exit 0; \
@@ -152,9 +145,9 @@ open-dashboard:
 status:
 	@echo "Demo status"
 	@for pair in \
-		"Aspire dashboard:17271" \
+		"Aspire dashboard:$(APPHOST_DASHBOARD_PORT)" \
 		"Identity:33656" \
-		"API (watch):4000" \
+		"API:4000" \
 		"AppHost API:$(APPHOST_API_PORT)"; do \
 		name=$${pair%%:*}; \
 		port=$${pair##*:}; \
@@ -164,7 +157,7 @@ status:
 			echo "  $$name: down (:$$port)"; \
 		fi; \
 	done
-	@dashboard_url=$$(grep -Eo 'https://localhost:17271/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
+	@dashboard_url=$$(grep -Eo 'http://localhost:$(APPHOST_DASHBOARD_PORT)/login\?t=[^[:space:]]+' $(APPHOST_LOG) 2>/dev/null | tail -1); \
 	if [ -n "$$dashboard_url" ]; then \
 		echo "  Dashboard login: $$dashboard_url"; \
 	fi
