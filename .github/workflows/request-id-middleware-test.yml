@@ -1,0 +1,18 @@
+name: RequestId middleware test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cursor/x-request-id-middleware-063f"
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
+      - name: Build SharedWeb.Test
+        run: dotnet build test/SharedWeb.Test/SharedWeb.Test.csproj
+      - name: Run RequestIdMiddlewareTests
+        run: dotnet test test/SharedWeb.Test/SharedWeb.Test.csproj --filter "FullyQualifiedName~RequestIdMiddlewareTests" --no-build
