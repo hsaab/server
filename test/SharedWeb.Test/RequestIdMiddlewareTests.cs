@@ -40,8 +40,9 @@ public class RequestIdMiddlewareTests
         await _middleware.Invoke(context);
 
         Assert.Equal(requestId, context.Response.Headers[RequestIdMiddleware.HeaderName].ToString());
-        var loggedRequestId = Assert.Single(logEvents).Properties["RequestId"].LiteralValue();
-        Assert.Equal(requestId, loggedRequestId);
+        var requestIdProperty = Assert.Single(logEvents).Properties["RequestId"];
+        var scalar = Assert.IsType<ScalarValue>(requestIdProperty);
+        Assert.Equal(requestId, scalar.Value);
         await _next.Received(1).Invoke(context);
     }
 
