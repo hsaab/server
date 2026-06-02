@@ -10,11 +10,19 @@ namespace Bit.SharedWeb.Utilities;
 /// </summary>
 public sealed class RequestIdMiddleware(RequestDelegate next)
 {
+    private const int MaxRequestIdLength = 256;
+
     public const string RequestIdHeaderName = "X-Request-ID";
 
     public async Task Invoke(HttpContext context)
     {
-        var requestId = GetOrCreateRequestId(context);
+        if (!TryGetOrCreateRequestId(context, out var requestId))
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { Error = $"{RequestIdHeaderName} header cannot exceed {MaxRequestIdLength} characters or contain control characters" });
+            return;
+        }
+
         context.Response.Headers[RequestIdHeaderName] = requestId;
 
         using (LogContext.PushProperty("RequestId", requestId))
@@ -23,17 +31,31 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
         }
     }
 
-    private static string GetOrCreateRequestId(HttpContext context)
+    private static bool TryGetOrCreateRequestId(HttpContext context, out string requestId)
     {
         if (context.Request.Headers.TryGetValue(RequestIdHeaderName, out var value))
         {
-            var requestId = value.ToString();
+            requestId = value.ToString();
             if (!string.IsNullOrWhiteSpace(requestId))
             {
-                return requestId;
+                return requestId.Length <= MaxRequestIdLength && !ContainsControlCharacter(requestId);
             }
         }
 
-        return Guid.NewGuid().ToString();
+        requestId = Guid.NewGuid().ToString();
+        return true;
+    }
+
+    private static bool ContainsControlCharacter(string value)
+    {
+        foreach (var character in value)
+        {
+            if (char.IsControl(character))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

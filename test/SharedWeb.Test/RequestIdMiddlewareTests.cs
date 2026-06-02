@@ -30,4 +30,30 @@ public class RequestIdMiddlewareTests
 
         await _next.Received(2).Invoke(Arg.Any<HttpContext>());
     }
+
+    [Fact]
+    public async Task Invoke_RejectsRequestIdHeaderOverMaxLength()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[RequestIdMiddleware.RequestIdHeaderName] = new string('a', 257);
+
+        await _middleware.Invoke(context);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.False(context.Response.Headers.ContainsKey(RequestIdMiddleware.RequestIdHeaderName));
+        await _next.DidNotReceive().Invoke(Arg.Any<HttpContext>());
+    }
+
+    [Fact]
+    public async Task Invoke_RejectsRequestIdHeaderWithControlCharacters()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[RequestIdMiddleware.RequestIdHeaderName] = "incoming\u001ftrace-id";
+
+        await _middleware.Invoke(context);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.False(context.Response.Headers.ContainsKey(RequestIdMiddleware.RequestIdHeaderName));
+        await _next.DidNotReceive().Invoke(Arg.Any<HttpContext>());
+    }
 }
