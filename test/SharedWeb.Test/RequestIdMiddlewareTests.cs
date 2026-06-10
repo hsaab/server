@@ -44,6 +44,19 @@ public class RequestIdMiddlewareTests
     }
 
     [Fact]
+    public async Task Invoke_WithOversizedRequestIdHeader_GeneratesUuidAndEchoesOnResponse()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[RequestIdMiddleware.HeaderName] = new string('a', 129);
+
+        await _middleware.Invoke(context);
+
+        var responseRequestId = context.Response.Headers[RequestIdMiddleware.HeaderName].ToString();
+        Assert.True(Guid.TryParse(responseRequestId, out _));
+        await _next.Received(1).Invoke(context);
+    }
+
+    [Fact]
     public async Task Invoke_PushesRequestIdToLogContext()
     {
         var logEvents = new List<LogEvent>();

@@ -9,6 +9,7 @@ namespace Bit.SharedWeb.Utilities;
 public sealed class RequestIdMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-Request-ID";
+    private const int MaxRequestIdLength = 128;
 
     public async Task Invoke(HttpContext context)
     {
@@ -27,7 +28,7 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
         if (context.Request.Headers.TryGetValue(HeaderName, out var headerValue))
         {
             var requestId = headerValue.ToString();
-            if (!string.IsNullOrWhiteSpace(requestId))
+            if (!string.IsNullOrWhiteSpace(requestId) && requestId.Length <= MaxRequestIdLength)
             {
                 return requestId;
             }
