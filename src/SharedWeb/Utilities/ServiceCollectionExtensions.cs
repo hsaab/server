@@ -586,6 +586,7 @@ public static class ServiceCollectionExtensions
     public static void UseDefaultMiddleware(this IApplicationBuilder app,
         IWebHostEnvironment env, GlobalSettings globalSettings)
     {
+        app.UseMiddleware<RequestIdMiddleware>();
         app.UseMiddleware<RequestLoggingMiddleware>();
         if (globalSettings.TestPlayIdTrackingEnabled)
         {
