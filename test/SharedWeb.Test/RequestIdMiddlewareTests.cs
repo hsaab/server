@@ -54,7 +54,7 @@ public class RequestIdMiddlewareTests
         {
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .WriteTo.Sink(new CollectingSink(logEvents))
+                .WriteTo.Sink(new CollectingSink(logEvents.Add))
                 .CreateLogger();
 
             var context = new DefaultHttpContext();
