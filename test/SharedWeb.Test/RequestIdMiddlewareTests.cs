@@ -1,4 +1,4 @@
-using Bit.SharedWeb.Utilities;
+﻿using Bit.SharedWeb.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 
