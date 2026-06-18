@@ -1,4 +1,4 @@
-﻿﻿using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
