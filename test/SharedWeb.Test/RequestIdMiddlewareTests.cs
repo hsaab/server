@@ -1,4 +1,4 @@
-using Bit.SharedWeb.Utilities;
+﻿using Bit.SharedWeb.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using Serilog;
@@ -38,9 +38,9 @@ public class RequestIdMiddlewareTests
         await _next.Received(1).Invoke(context);
         Assert.Equal(requestId, context.Response.Headers[RequestIdMiddleware.RequestIdHeaderName].ToString());
 
-        var logEvent = Assert.NotNull(capturedLogEvent);
-        Assert.Equal("during request", logEvent.RenderMessage());
-        Assert.Equal(requestId, logEvent.Properties[RequestIdMiddleware.RequestIdPropertyName].ToString().Trim('"'));
+        Assert.NotNull(capturedLogEvent);
+        Assert.Equal("during request", capturedLogEvent.RenderMessage());
+        Assert.Equal(requestId, capturedLogEvent.Properties[RequestIdMiddleware.RequestIdPropertyName].ToString().Trim('"'));
     }
 
     [Fact]
