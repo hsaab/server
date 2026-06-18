@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Debugging;
 using Serilog.Events;
-using Serilog.Extensions.Logging;
 using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;
@@ -43,7 +42,10 @@ internal static class BitwardenFileLoggerExtensions
             config.RetainedFileCountLimit ?? DefaultRetainedFileCountLimit,
             config.OutputTemplate ?? DefaultOutputTemplate);
 
-        return loggingBuilder.AddSerilog(logger, dispose: true);
+        return Serilog.Extensions.Logging.SerilogLoggerFactoryExtensions.AddSerilog(
+            loggingBuilder,
+            logger,
+            dispose: true);
     }
 
     private static Serilog.Core.Logger CreateLogger(
