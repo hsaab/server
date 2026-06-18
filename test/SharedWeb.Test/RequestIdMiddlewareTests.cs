@@ -1,10 +1,10 @@
-﻿using Bit.SharedWeb.Utilities;
+﻿using System.Globalization;
+using Bit.SharedWeb.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using System.Globalization;
 
 namespace SharedWeb.Test;
 
