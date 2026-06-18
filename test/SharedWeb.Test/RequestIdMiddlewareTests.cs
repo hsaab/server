@@ -4,6 +4,7 @@ using NSubstitute;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Globalization;
 
 namespace SharedWeb.Test;
 
@@ -39,7 +40,7 @@ public class RequestIdMiddlewareTests
         Assert.Equal(requestId, context.Response.Headers[RequestIdMiddleware.RequestIdHeaderName].ToString());
 
         Assert.NotNull(capturedLogEvent);
-        Assert.Equal("during request", capturedLogEvent.RenderMessage());
+        Assert.Equal("during request", capturedLogEvent.RenderMessage(CultureInfo.InvariantCulture));
         Assert.Equal(requestId, capturedLogEvent.Properties[RequestIdMiddleware.RequestIdPropertyName].ToString().Trim('"'));
     }
 
