@@ -1,4 +1,4 @@
-using Bit.RustSDK;
+﻿using Bit.RustSDK;
 using CommandDotNet;
 
 namespace Bit.SeederUtility.Commands;
