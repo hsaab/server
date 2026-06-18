@@ -32,8 +32,8 @@ public class RequestIdEnricherTests
     {
         var events = new List<LogEvent>();
         var logger = new LoggerConfiguration()
-            .Enrich.With(new RequestIdEnricher())
             .Enrich.WithProperty("RequestId", "existing-request-id")
+            .Enrich.With(new RequestIdEnricher())
             .WriteTo.Sink(new CollectingSink(events))
             .CreateLogger();
 
