@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Debugging;
 using Serilog.Events;
+#pragma warning disable IDE0005
+using Serilog.Extensions.Logging;
+#pragma warning restore IDE0005
 using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;
@@ -42,10 +45,7 @@ internal static class BitwardenFileLoggerExtensions
             config.RetainedFileCountLimit ?? DefaultRetainedFileCountLimit,
             config.OutputTemplate ?? DefaultOutputTemplate);
 
-        return Serilog.Extensions.Logging.SerilogLoggerFactoryExtensions.AddSerilog(
-            loggingBuilder,
-            logger,
-            dispose: true);
+        return loggingBuilder.AddSerilog(logger, dispose: true);
     }
 
     private static Serilog.Core.Logger CreateLogger(
