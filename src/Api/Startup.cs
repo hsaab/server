@@ -240,6 +240,8 @@ public class Startup
         // Add general security headers
         app.UseMiddleware<SecurityHeadersMiddleware>();
 
+        app.UseMiddleware<RequestIdMiddleware>();
+
         // Default Middleware
         app.UseDefaultMiddleware(env, globalSettings);
 

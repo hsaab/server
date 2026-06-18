@@ -59,6 +59,39 @@ public class LoggerFactoryExtensionsTests
     }
 
     [Fact]
+    public async Task AddSerilogFileLogging_IncludesRequestIdWhenPresent()
+    {
+        var tempDir = Directory.CreateTempSubdirectory();
+
+        var provider = GetServiceProvider(new Dictionary<string, string?>
+        {
+            { "Logging:PathFormat", $"{tempDir}/Logs/log-{{Date}}.log" },
+        }, "Production");
+
+        var logger = provider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Test");
+
+        RequestIdContext.CurrentRequestId = "test-request-id";
+
+        try
+        {
+            logger.LogWarning("This is a test");
+        }
+        finally
+        {
+            RequestIdContext.CurrentRequestId = null;
+        }
+
+        await provider.DisposeAsync();
+
+        var logFile = Assert.Single(tempDir.EnumerateFiles("Logs/*.log"));
+        var logFileContents = await File.ReadAllTextAsync(logFile.FullName);
+
+        Assert.Contains("test-request-id", logFileContents);
+    }
+
+    [Fact]
     public async Task AddSerilog_FileLogging_New_Works()
     {
         var tempDir = Directory.CreateTempSubdirectory();
