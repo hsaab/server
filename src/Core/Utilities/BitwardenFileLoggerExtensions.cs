@@ -1,10 +1,9 @@
-using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Debugging;
+using Serilog.Events;
 using Serilog.Extensions.Logging;
-using Serilog.Extensions.Logging.File;
 using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;
@@ -13,13 +12,20 @@ namespace Bit.Core.Utilities;
 
 internal static class BitwardenFileLoggerExtensions
 {
+    private const long DefaultFileSizeLimitBytes = 1024L * 1024 * 1024;
+    private const int DefaultRetainedFileCountLimit = 31;
+    private const string DefaultOutputTemplate =
+        "{Timestamp:o} {RequestId,13} [{Level:u3}] {Message} ({EventId:x8}){NewLine}{Exception}";
+
     public static ILoggingBuilder AddBitwardenFile(this ILoggingBuilder loggingBuilder, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(loggingBuilder);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var config = configuration.Get<FileLoggingConfiguration>();
-        if (string.IsNullOrWhiteSpace(config?.PathFormat))
+        var config = new FileLoggingOptions();
+        configuration.Bind(config);
+
+        if (string.IsNullOrWhiteSpace(config.PathFormat))
         {
             SelfLog.WriteLine("Unable to add the file logger: no PathFormat was present in the configuration");
             return loggingBuilder;
@@ -29,13 +35,13 @@ internal static class BitwardenFileLoggerExtensions
         var levelOverrides = GetLevelOverrides(configuration);
 
         var logger = CreateLogger(
-            config.PathFormat!,
+            config.PathFormat,
             minimumLevel,
             levelOverrides,
             config.Json,
-            config.FileSizeLimitBytes,
-            config.RetainedFileCountLimit,
-            config.OutputTemplate);
+            config.FileSizeLimitBytes ?? DefaultFileSizeLimitBytes,
+            config.RetainedFileCountLimit ?? DefaultRetainedFileCountLimit,
+            config.OutputTemplate ?? DefaultOutputTemplate);
 
         return loggingBuilder.AddSerilog(logger, dispose: true);
     }
@@ -69,7 +75,7 @@ internal static class BitwardenFileLoggerExtensions
         }
 
         var configuration = new LoggerConfiguration()
-            .MinimumLevel.Is(LevelConvert.ToSerilogLevel(minimumLevel))
+            .MinimumLevel.Is(ToSerilogLevel(minimumLevel))
             .Enrich.FromLogContext()
             .Enrich.With<RequestIdEnricher>()
             .WriteTo.Async(w => w.File(
@@ -81,20 +87,27 @@ internal static class BitwardenFileLoggerExtensions
                 shared: true,
                 flushToDiskInterval: TimeSpan.FromSeconds(2)));
 
-        if (!isJson)
-        {
-            configuration.Enrich.With<EventIdEnricher>();
-        }
-
         foreach (var levelOverride in levelOverrides ?? new Dictionary<string, LogLevel>())
         {
             configuration.MinimumLevel.Override(
                 levelOverride.Key,
-                LevelConvert.ToSerilogLevel(levelOverride.Value));
+                ToSerilogLevel(levelOverride.Value));
         }
 
         return configuration.CreateLogger();
     }
+
+    private static LogEventLevel ToSerilogLevel(LogLevel level) => level switch
+    {
+        LogLevel.Trace => LogEventLevel.Verbose,
+        LogLevel.Debug => LogEventLevel.Debug,
+        LogLevel.Information => LogEventLevel.Information,
+        LogLevel.Warning => LogEventLevel.Warning,
+        LogLevel.Error => LogEventLevel.Error,
+        LogLevel.Critical => LogEventLevel.Fatal,
+        LogLevel.None => LogEventLevel.Fatal,
+        _ => LogEventLevel.Information,
+    };
 
     private static LogLevel GetMinimumLogLevel(IConfiguration configuration)
     {
@@ -127,5 +140,14 @@ internal static class BitwardenFileLoggerExtensions
         }
 
         return levelOverrides;
+    }
+
+    private sealed class FileLoggingOptions
+    {
+        public string? PathFormat { get; set; }
+        public bool Json { get; set; }
+        public long? FileSizeLimitBytes { get; set; }
+        public int? RetainedFileCountLimit { get; set; }
+        public string? OutputTemplate { get; set; }
     }
 }
