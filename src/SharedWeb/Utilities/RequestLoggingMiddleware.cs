@@ -26,6 +26,7 @@ public sealed class RequestLoggingMiddleware
     {
         using (_logger.BeginScope(
           new RequestLogScope(context.GetIpAddress(_globalSettings),
+            GetRequestId(context),
             GetHeaderValue(context, "user-agent"),
             GetHeaderValue(context, "device-type"),
             GetHeaderValue(context, "device-type"),
@@ -43,6 +44,17 @@ public sealed class RequestLoggingMiddleware
 
             return null;
         }
+
+        static string? GetRequestId(HttpContext httpContext)
+        {
+            if (httpContext.Items.TryGetValue(RequestIdMiddleware.HttpContextItemKey, out var requestId) &&
+                requestId is string requestIdValue)
+            {
+                return requestIdValue;
+            }
+
+            return null;
+        }
     }
 
 
@@ -50,9 +62,16 @@ public sealed class RequestLoggingMiddleware
     {
         private string? _cachedToString;
 
-        public RequestLogScope(string? ipAddress, string? userAgent, string? deviceType, string? origin, string? clientVersion)
+        public RequestLogScope(
+            string? ipAddress,
+            string? requestId,
+            string? userAgent,
+            string? deviceType,
+            string? origin,
+            string? clientVersion)
         {
             IpAddress = ipAddress;
+            RequestId = requestId;
             UserAgent = userAgent;
             DeviceType = deviceType;
             Origin = origin;
@@ -69,17 +88,21 @@ public sealed class RequestLoggingMiddleware
                 }
                 else if (index == 1)
                 {
-                    return new KeyValuePair<string, object?>(nameof(UserAgent), UserAgent);
+                    return new KeyValuePair<string, object?>(nameof(RequestId), RequestId);
                 }
                 else if (index == 2)
                 {
-                    return new KeyValuePair<string, object?>(nameof(DeviceType), DeviceType);
+                    return new KeyValuePair<string, object?>(nameof(UserAgent), UserAgent);
                 }
                 else if (index == 3)
                 {
-                    return new KeyValuePair<string, object?>(nameof(Origin), Origin);
+                    return new KeyValuePair<string, object?>(nameof(DeviceType), DeviceType);
                 }
                 else if (index == 4)
+                {
+                    return new KeyValuePair<string, object?>(nameof(Origin), Origin);
+                }
+                else if (index == 5)
                 {
                     return new KeyValuePair<string, object?>(nameof(ClientVersion), ClientVersion);
                 }
@@ -88,9 +111,10 @@ public sealed class RequestLoggingMiddleware
             }
         }
 
-        public int Count => 5;
+        public int Count => 6;
 
         public string? IpAddress { get; }
+        public string? RequestId { get; }
         public string? UserAgent { get; }
         public string? DeviceType { get; }
         public string? Origin { get; }
@@ -107,7 +131,8 @@ public sealed class RequestLoggingMiddleware
 
         public override string ToString()
         {
-            _cachedToString ??= $"IpAddress:{IpAddress} UserAgent:{UserAgent} DeviceType:{DeviceType} Origin:{Origin} ClientVersion:{ClientVersion}";
+            _cachedToString ??=
+                $"IpAddress:{IpAddress} RequestId:{RequestId} UserAgent:{UserAgent} DeviceType:{DeviceType} Origin:{Origin} ClientVersion:{ClientVersion}";
             return _cachedToString;
         }
     }
