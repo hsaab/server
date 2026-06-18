@@ -1,4 +1,4 @@
-namespace Bit.Core.Utilities;
+﻿namespace Bit.Core.Utilities;
 
 /// <summary>
 /// Ambient request ID storage for the current async flow, used by logging enrichers.

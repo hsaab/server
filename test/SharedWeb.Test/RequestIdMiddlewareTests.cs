@@ -1,9 +1,7 @@
-using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Bit.SharedWeb.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
-using Serilog.Core;
-using Serilog.Events;
 
 namespace SharedWeb.Test;
 
@@ -42,21 +40,17 @@ public class RequestIdMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WithoutRequestIdHeader_GeneratesGuidAndEnrichesLogging()
+    public async Task Invoke_WithoutRequestIdHeader_GeneratesGuidAndSetsRequestContext()
     {
         var context = new DefaultHttpContext();
         string? requestIdDuringPipeline = null;
-        LogEventPropertyValue? requestIdPropertyDuringPipeline = null;
+        string? requestIdContextDuringPipeline = null;
 
         _next.When(next => next.Invoke(Arg.Any<HttpContext>()))
             .Do(callInfo =>
             {
                 requestIdDuringPipeline = RequestIdMiddleware.GetRequestId(callInfo.Arg<HttpContext>());
-
-                var enricher = new RequestIdEnricher();
-                var logEvent = CreateLogEvent();
-                enricher.Enrich(logEvent, new TestLogEventPropertyFactory());
-                logEvent.Properties.TryGetValue("RequestId", out requestIdPropertyDuringPipeline);
+                requestIdContextDuringPipeline = RequestIdContext.CurrentRequestId;
             });
 
         await _middleware.Invoke(context);
@@ -66,8 +60,7 @@ public class RequestIdMiddlewareTests
         Assert.True(Guid.TryParse(responseRequestId, out _));
         Assert.Equal(responseRequestId, context.Items[RequestIdMiddleware.RequestIdItemKey]);
         Assert.Equal(responseRequestId, requestIdDuringPipeline);
-        Assert.NotNull(requestIdPropertyDuringPipeline);
-        Assert.Equal(responseRequestId, ((ScalarValue)requestIdPropertyDuringPipeline).Value);
+        Assert.Equal(responseRequestId, requestIdContextDuringPipeline);
         await _next.Received(1).Invoke(context);
     }
 
@@ -84,23 +77,5 @@ public class RequestIdMiddlewareTests
         var responseRequestId = context.Response.Headers[RequestIdMiddleware.RequestIdHeaderName].ToString();
         Assert.True(Guid.TryParse(responseRequestId, out _));
         await _next.Received(1).Invoke(context);
-    }
-
-    private static LogEvent CreateLogEvent()
-    {
-        return new LogEvent(
-            DateTimeOffset.UtcNow,
-            LogEventLevel.Information,
-            exception: null,
-            messageTemplate: new Serilog.Parsing.MessageTemplate("test", []),
-            properties: []);
-    }
-
-    private sealed class TestLogEventPropertyFactory : ILogEventPropertyFactory
-    {
-        public LogEventProperty CreateProperty(string name, object? value, bool destructureObjects = false)
-        {
-            return new LogEventProperty(name, new ScalarValue(value));
-        }
     }
 }

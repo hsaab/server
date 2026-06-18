@@ -1,4 +1,4 @@
-using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http;
 using Serilog.Context;
 
