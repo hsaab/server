@@ -12,6 +12,7 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
 {
     public const string RequestIdHeaderName = "X-Request-ID";
     public const string RequestIdItemKey = "RequestId";
+    private const int MaxRequestIdLength = 128;
 
     public async Task Invoke(HttpContext context)
     {
@@ -49,12 +50,30 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
         if (context.Request.Headers.TryGetValue(RequestIdHeaderName, out var headerValue))
         {
             var requestId = headerValue.ToString();
-            if (!string.IsNullOrWhiteSpace(requestId))
+            if (IsValidRequestId(requestId))
             {
                 return requestId;
             }
         }
 
         return Guid.NewGuid().ToString();
+    }
+
+    private static bool IsValidRequestId(string? requestId)
+    {
+        if (string.IsNullOrWhiteSpace(requestId) || requestId.Length > MaxRequestIdLength)
+        {
+            return false;
+        }
+
+        foreach (var character in requestId)
+        {
+            if (character is < (char)0x20 or > (char)0x7E)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -67,10 +67,25 @@ public class RequestIdMiddlewareTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task Invoke_WithEmptyRequestIdHeader_GeneratesNewGuid(string headerValue)
+    [InlineData("bad\nid")]
+    [InlineData("bad\rid")]
+    public async Task Invoke_WithInvalidRequestIdHeader_GeneratesNewGuid(string headerValue)
     {
         var context = new DefaultHttpContext();
         context.Request.Headers[RequestIdMiddleware.RequestIdHeaderName] = headerValue;
+
+        await _middleware.Invoke(context);
+
+        var responseRequestId = context.Response.Headers[RequestIdMiddleware.RequestIdHeaderName].ToString();
+        Assert.True(Guid.TryParse(responseRequestId, out _));
+        await _next.Received(1).Invoke(context);
+    }
+
+    [Fact]
+    public async Task Invoke_WithRequestIdExceedingMaxLength_GeneratesNewGuid()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[RequestIdMiddleware.RequestIdHeaderName] = new string('a', 129);
 
         await _middleware.Invoke(context);
 
