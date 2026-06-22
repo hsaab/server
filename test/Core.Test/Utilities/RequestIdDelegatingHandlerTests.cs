@@ -51,6 +51,34 @@ public class RequestIdDelegatingHandlerTests
         Assert.False(capturedRequest.Headers.Contains(RequestIdUtilities.HeaderName));
     }
 
+    [Fact]
+    public async Task SendAsync_WithStaleAsyncLocalContext_DoesNotAddRequestIdHeader()
+    {
+        RequestIdContext.Current = "stale-request-id";
+        try
+        {
+            var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+            httpContextAccessor.HttpContext.Returns((HttpContext?)null);
+
+            HttpRequestMessage? capturedRequest = null;
+            var innerHandler = new CapturingHandler(request => capturedRequest = request);
+            var handler = new RequestIdDelegatingHandler(httpContextAccessor)
+            {
+                InnerHandler = innerHandler
+            };
+
+            var invoker = new HttpMessageInvoker(handler);
+            await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "https://example.com"), CancellationToken.None);
+
+            Assert.NotNull(capturedRequest);
+            Assert.False(capturedRequest.Headers.Contains(RequestIdUtilities.HeaderName));
+        }
+        finally
+        {
+            RequestIdContext.Current = null;
+        }
+    }
+
     private sealed class CapturingHandler(Action<HttpRequestMessage> capture) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(

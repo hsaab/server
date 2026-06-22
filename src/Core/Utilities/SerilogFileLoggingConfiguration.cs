@@ -53,7 +53,8 @@ internal static class SerilogFileLoggingConfiguration
             : new MessageTemplateTextFormatter(outputTemplate);
 
         var path = Environment.ExpandEnvironmentVariables(pathFormat);
-        if (Path.GetFileNameWithoutExtension(path).EndsWith("{Date}", StringComparison.Ordinal))
+        var usesDateRolling = Path.GetFileNameWithoutExtension(path).EndsWith("{Date}", StringComparison.Ordinal);
+        if (usesDateRolling)
         {
             path = path.Replace("{Date}", string.Empty, StringComparison.Ordinal);
         }
@@ -64,6 +65,8 @@ internal static class SerilogFileLoggingConfiguration
                 path);
         }
 
+        var rollingInterval = usesDateRolling ? RollingInterval.Day : RollingInterval.Infinite;
+
         var configuration = new LoggerConfiguration()
             .MinimumLevel.Is(LevelConvert.ToSerilogLevel(minimumLevel))
             .Enrich.FromLogContext()
@@ -71,7 +74,7 @@ internal static class SerilogFileLoggingConfiguration
             .WriteTo.Async(w => w.File(
                 formatter,
                 path,
-                rollingInterval: RollingInterval.Day,
+                rollingInterval: rollingInterval,
                 fileSizeLimitBytes: fileSizeLimitBytes ?? DefaultFileSizeLimitBytes,
                 retainedFileCountLimit: retainedFileCountLimit ?? DefaultRetainedFileCountLimit,
                 shared: true,

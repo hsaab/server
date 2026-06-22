@@ -34,7 +34,7 @@ public static class RequestIdUtilities
             return requestId;
         }
 
-        return RequestIdContext.Current;
+        return null;
     }
 
     private static string? GetIncomingRequestId(HttpContext context)
