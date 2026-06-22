@@ -91,6 +91,40 @@ public class LoggerFactoryExtensionsTests
     }
 
     [Fact]
+    public async Task AddSerilogFileLogging_IncludesRequestIdWhenContextIsSet()
+    {
+        var tempDir = Directory.CreateTempSubdirectory();
+        RequestIdContext.Current = "serilog-request-id";
+
+        try
+        {
+            var provider = GetServiceProvider(new Dictionary<string, string?>
+            {
+                { "Logging:PathFormat", $"{tempDir}/Logs/log-{{Date}}.log" },
+            }, "Production");
+
+            var logger = provider
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("Test");
+
+            logger.LogWarning("Request scoped log");
+
+            await provider.DisposeAsync();
+
+            var logFile = Assert.Single(tempDir.EnumerateFiles("Logs/*.log"));
+            var logFileContents = await File.ReadAllTextAsync(logFile.FullName);
+
+            Assert.Contains("serilog-request-id", logFileContents);
+            Assert.Contains("Request scoped log", logFileContents);
+        }
+        finally
+        {
+            RequestIdContext.Current = null;
+            tempDir.Delete();
+        }
+    }
+
+    [Fact]
     public async Task AddSerilogFileLogging_LegacyConfig_WithLevelCustomization_InfoLogs_DoNotFillUpFile()
     {
         await AssertSmallFileAsync((tempDir, config) =>

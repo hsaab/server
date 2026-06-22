@@ -265,7 +265,9 @@ public static class ServiceCollectionExtensions
         // Required for UserService
         services.AddWebAuthn(globalSettings);
         // Required for HTTP calls
-        services.AddHttpClient();
+        services.AddHttpContextAccessor();
+        services.AddHttpClient()
+            .ConfigureHttpClientDefaults(builder => builder.AddRequestIdPropagation());
 
         services.AddSingleton<IStripeAdapter, StripeAdapter>();
         services.AddSingleton<Braintree.IBraintreeGateway>((serviceProvider) =>
@@ -586,6 +588,7 @@ public static class ServiceCollectionExtensions
     public static void UseDefaultMiddleware(this IApplicationBuilder app,
         IWebHostEnvironment env, GlobalSettings globalSettings)
     {
+        app.UseMiddleware<RequestIdMiddleware>();
         app.UseMiddleware<RequestLoggingMiddleware>();
         if (globalSettings.TestPlayIdTrackingEnabled)
         {
