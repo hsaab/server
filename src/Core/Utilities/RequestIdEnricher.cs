@@ -8,7 +8,7 @@ public sealed class RequestIdEnricher : ILogEventEnricher
 {
     private static IHttpContextAccessor? _httpContextAccessor;
 
-    public static void SetHttpContextAccessor(IHttpContextAccessor httpContextAccessor)
+    public static void SetHttpContextAccessor(IHttpContextAccessor? httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
     }
@@ -21,7 +21,8 @@ public sealed class RequestIdEnricher : ILogEventEnricher
         }
 
         var httpContext = _httpContextAccessor?.HttpContext;
-        if (httpContext?.Items.TryGetValue(RequestIdConstants.ItemKey, out var requestId) == true
+        if (httpContext is not null
+            && httpContext.Items.TryGetValue(RequestIdConstants.ItemKey, out var requestId)
             && requestId is string requestIdValue
             && !string.IsNullOrEmpty(requestIdValue))
         {

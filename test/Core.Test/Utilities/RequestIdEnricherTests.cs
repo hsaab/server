@@ -45,6 +45,36 @@ public class RequestIdEnricherTests
         Assert.False(logEvent.Properties.ContainsKey(RequestIdConstants.LogPropertyName));
     }
 
+    [Fact]
+    public void Enrich_WithNullHttpContext_DoesNotThrowOrAddProperty()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        httpContextAccessor.HttpContext.Returns((HttpContext?)null);
+        RequestIdEnricher.SetHttpContextAccessor(httpContextAccessor);
+
+        var enricher = new RequestIdEnricher();
+        var logEvent = CreateLogEvent();
+
+        var exception = Record.Exception(() => enricher.Enrich(logEvent, new PropertyFactory()));
+
+        Assert.Null(exception);
+        Assert.False(logEvent.Properties.ContainsKey(RequestIdConstants.LogPropertyName));
+    }
+
+    [Fact]
+    public void Enrich_WithUnconfiguredHttpContextAccessor_DoesNotThrowOrAddProperty()
+    {
+        RequestIdEnricher.SetHttpContextAccessor(null);
+
+        var enricher = new RequestIdEnricher();
+        var logEvent = CreateLogEvent();
+
+        var exception = Record.Exception(() => enricher.Enrich(logEvent, new PropertyFactory()));
+
+        Assert.Null(exception);
+        Assert.False(logEvent.Properties.ContainsKey(RequestIdConstants.LogPropertyName));
+    }
+
     private static LogEvent CreateLogEvent()
     {
         return new LogEvent(
