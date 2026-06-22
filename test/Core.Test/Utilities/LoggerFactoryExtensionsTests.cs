@@ -120,7 +120,7 @@ public class LoggerFactoryExtensionsTests
         finally
         {
             RequestIdContext.Current = null;
-            tempDir.Delete();
+            tempDir.Delete(recursive: true);
         }
     }
 

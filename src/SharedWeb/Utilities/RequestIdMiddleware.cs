@@ -27,6 +27,11 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
         }
         finally
         {
+            if (!context.Response.HasStarted)
+            {
+                context.Response.Headers[RequestIdUtilities.HeaderName] = requestId;
+            }
+
             RequestIdContext.Current = null;
         }
     }

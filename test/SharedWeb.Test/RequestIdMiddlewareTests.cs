@@ -13,11 +13,7 @@ public class RequestIdMiddlewareTests
     public RequestIdMiddlewareTests()
     {
         _next = Substitute.For<RequestDelegate>();
-        _next.Invoke(Arg.Any<HttpContext>()).Returns(callInfo =>
-        {
-            var context = callInfo.Arg<HttpContext>();
-            return context.Response.StartAsync();
-        });
+        _next.Invoke(Arg.Any<HttpContext>()).Returns(Task.CompletedTask);
         _middleware = new RequestIdMiddleware(_next);
     }
 
