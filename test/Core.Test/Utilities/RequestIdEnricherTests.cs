@@ -1,7 +1,8 @@
-using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Serilog.Core;
 using Serilog.Events;
 using Serilog.Parsing;
+using Xunit;
 
 namespace Bit.Core.Test.Utilities;
 

@@ -1,5 +1,4 @@
-using System.Globalization;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Debugging;
@@ -7,7 +6,6 @@ using Serilog.Extensions.Logging;
 using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;
-using Serilog.Sinks.Async;
 using Serilog.Sinks.File;
 
 namespace Bit.Core.Utilities;

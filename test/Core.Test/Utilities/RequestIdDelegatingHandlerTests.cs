@@ -1,6 +1,7 @@
-using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
+using Xunit;
 
 namespace Bit.Core.Test.Utilities;
 

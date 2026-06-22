@@ -1,7 +1,8 @@
-using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Bit.SharedWeb.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
+using Xunit;
 
 namespace SharedWeb.Test;
 
