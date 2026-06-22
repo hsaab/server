@@ -2,6 +2,7 @@
 using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
+using Xunit;
 
 namespace Bit.Api.Test.Middleware;
 
