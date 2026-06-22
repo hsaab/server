@@ -1,4 +1,5 @@
-﻿using Bit.Api.Utilities;
+﻿using Bit.Api.Middleware;
+using Bit.Api.Utilities;
 using Bit.Core;
 using Bit.Core.Context;
 using Bit.Core.Settings;
@@ -239,6 +240,11 @@ public class Startup
     {
         // Add general security headers
         app.UseMiddleware<SecurityHeadersMiddleware>();
+
+        RequestIdEnricher.SetHttpContextAccessor(
+            app.ApplicationServices.GetRequiredService<IHttpContextAccessor>());
+
+        app.UseMiddleware<RequestIdMiddleware>();
 
         // Default Middleware
         app.UseDefaultMiddleware(env, globalSettings);
