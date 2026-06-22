@@ -1,11 +1,12 @@
+﻿using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Debugging;
-using Serilog.Extensions.Logging.File;
-using Serilog.Formatting;
 using Serilog.Events;
+using Serilog.Extensions.Logging;
+using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;
 
@@ -13,6 +14,11 @@ namespace Bit.Core.Utilities;
 
 public static class BitwardenFileLoggingExtensions
 {
+    private const long DefaultFileSizeLimitBytes = 1024 * 1024 * 1024;
+    private const int DefaultRetainedFileCountLimit = 31;
+    private const string DefaultOutputTemplate =
+        "{Timestamp:o} {RequestId,13} [{Level:u3}] {Message} ({EventId:x8}){NewLine}{Exception}";
+
     public static ILoggingBuilder AddBitwardenFile(this ILoggingBuilder loggingBuilder, IConfiguration configuration)
     {
         if (loggingBuilder == null)
@@ -25,8 +31,8 @@ public static class BitwardenFileLoggingExtensions
             throw new ArgumentNullException(nameof(configuration));
         }
 
-        var config = configuration.Get<FileLoggingConfiguration>();
-        if (string.IsNullOrWhiteSpace(config.PathFormat))
+        var pathFormat = configuration["PathFormat"];
+        if (string.IsNullOrWhiteSpace(pathFormat))
         {
             SelfLog.WriteLine("Unable to add the file logger: no PathFormat was present in the configuration");
             return loggingBuilder;
@@ -34,15 +40,19 @@ public static class BitwardenFileLoggingExtensions
 
         var minimumLevel = GetMinimumLogLevel(configuration);
         var levelOverrides = GetLevelOverrides(configuration);
+        var isJson = bool.TryParse(configuration["Json"], out var json) && json;
+        var fileSizeLimitBytes = GetFileSizeLimitBytes(configuration);
+        var retainedFileCountLimit = GetRetainedFileCountLimit(configuration);
+        var outputTemplate = configuration["OutputTemplate"] ?? DefaultOutputTemplate;
 
         var logger = CreateLogger(
-            config.PathFormat,
+            pathFormat,
             minimumLevel,
             levelOverrides,
-            config.Json,
-            config.FileSizeLimitBytes,
-            config.RetainedFileCountLimit,
-            config.OutputTemplate);
+            isJson,
+            fileSizeLimitBytes,
+            retainedFileCountLimit,
+            outputTemplate);
 
         return loggingBuilder.AddSerilog(logger, dispose: true);
     }
@@ -56,22 +66,12 @@ public static class BitwardenFileLoggingExtensions
         int? retainedFileCountLimit,
         string outputTemplate)
     {
-        if (pathFormat == null)
-        {
-            throw new ArgumentNullException(nameof(pathFormat));
-        }
-
-        if (outputTemplate == null)
-        {
-            throw new ArgumentNullException(nameof(outputTemplate));
-        }
-
         var formatter = isJson
             ? (ITextFormatter)new RenderedCompactJsonFormatter()
             : new MessageTemplateTextFormatter(outputTemplate, null);
 
         var configuration = new LoggerConfiguration()
-            .MinimumLevel.Is(Conversions.MicrosoftToSerilogLevel(minimumLevel))
+            .MinimumLevel.Is(ToSerilogLevel(minimumLevel))
             .Enrich.FromLogContext()
             .Enrich.With(new RequestIdEnricher())
             .WriteTo.Async(w => w.RollingFile(
@@ -91,10 +91,41 @@ public static class BitwardenFileLoggingExtensions
         {
             configuration.MinimumLevel.Override(
                 levelOverride.Key,
-                Conversions.MicrosoftToSerilogLevel(levelOverride.Value));
+                ToSerilogLevel(levelOverride.Value));
         }
 
         return configuration.CreateLogger();
+    }
+
+    private static long? GetFileSizeLimitBytes(IConfiguration configuration)
+    {
+        if (!ConfigurationKeyExists(configuration, "FileSizeLimitBytes"))
+        {
+            return DefaultFileSizeLimitBytes;
+        }
+
+        var value = configuration["FileSizeLimitBytes"];
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : long.Parse(value, CultureInfo.InvariantCulture);
+    }
+
+    private static int? GetRetainedFileCountLimit(IConfiguration configuration)
+    {
+        if (!ConfigurationKeyExists(configuration, "RetainedFileCountLimit"))
+        {
+            return DefaultRetainedFileCountLimit;
+        }
+
+        var value = configuration["RetainedFileCountLimit"];
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : int.Parse(value, CultureInfo.InvariantCulture);
+    }
+
+    private static bool ConfigurationKeyExists(IConfiguration configuration, string key)
+    {
+        return configuration.GetChildren().Any(child => child.Key == key);
     }
 
     private static LogLevel GetMinimumLogLevel(IConfiguration configuration)
@@ -131,6 +162,21 @@ public static class BitwardenFileLoggingExtensions
         }
 
         return levelOverrides;
+    }
+
+    private static LogEventLevel ToSerilogLevel(LogLevel logLevel)
+    {
+        return logLevel switch
+        {
+            LogLevel.Trace => LogEventLevel.Verbose,
+            LogLevel.Debug => LogEventLevel.Debug,
+            LogLevel.Information => LogEventLevel.Information,
+            LogLevel.Warning => LogEventLevel.Warning,
+            LogLevel.Error => LogEventLevel.Error,
+            LogLevel.Critical => LogEventLevel.Fatal,
+            LogLevel.None => LogEventLevel.Fatal,
+            _ => LogEventLevel.Information,
+        };
     }
 
     private sealed class FileEventIdEnricher : ILogEventEnricher

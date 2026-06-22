@@ -1,4 +1,4 @@
-using Bit.Core.Utilities;
+﻿using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using Serilog.Core;
@@ -50,7 +50,7 @@ public class RequestIdEnricherTests
             DateTimeOffset.UtcNow,
             LogEventLevel.Information,
             exception: null,
-            messageTemplate: new MessageTemplate("Test message", []),
+            messageTemplate: new MessageTemplateParser().Parse("Test message"),
             properties: []);
     }
 

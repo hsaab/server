@@ -1,5 +1,4 @@
-using Bit.Core.Utilities;
-using Microsoft.AspNetCore.Http;
+﻿using Bit.Core.Utilities;
 
 namespace Bit.Api.Middleware;
 

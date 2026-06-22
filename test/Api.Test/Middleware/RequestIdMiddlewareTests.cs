@@ -1,4 +1,4 @@
-using Bit.Api.Middleware;
+﻿using Bit.Api.Middleware;
 using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
