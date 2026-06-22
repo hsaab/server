@@ -48,6 +48,35 @@ public class RequestIdMiddlewareTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
+    [InlineData("contains\nnewline")]
+    public async Task Invoke_WithInvalidIncomingRequestId_GeneratesUuidResponseHeader(string incomingRequestId)
+    {
+        var context = CreateContext();
+        context.Request.Headers[RequestIdUtilities.HeaderName] = incomingRequestId;
+
+        await _middleware.Invoke(context);
+
+        var responseRequestId = context.Response.Headers[RequestIdUtilities.HeaderName].ToString();
+        Assert.True(Guid.TryParse(responseRequestId, out _));
+        await _next.Received(1).Invoke(context);
+    }
+
+    [Fact]
+    public async Task Invoke_WhenNextThrows_PropagatesOriginalExceptionAndClearsContext()
+    {
+        var context = CreateContext();
+        context.Request.Headers[RequestIdUtilities.HeaderName] = "valid-request-id";
+        _next.Invoke(Arg.Any<HttpContext>()).Returns(_ => throw new InvalidOperationException("pipeline failed"));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _middleware.Invoke(context));
+
+        Assert.Equal("pipeline failed", exception.Message);
+        Assert.Null(RequestIdContext.Current);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
     public async Task Invoke_WithEmptyIncomingRequestId_GeneratesUuidResponseHeader(string incomingRequestId)
     {
         var context = CreateContext();

@@ -17,7 +17,7 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
 
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers[RequestIdUtilities.HeaderName] = requestId;
+            RequestIdUtilities.TrySetResponseRequestId(context.Response, requestId);
             return Task.CompletedTask;
         });
 
@@ -29,7 +29,7 @@ public sealed class RequestIdMiddleware(RequestDelegate next)
         {
             if (!context.Response.HasStarted)
             {
-                context.Response.Headers[RequestIdUtilities.HeaderName] = requestId;
+                RequestIdUtilities.TrySetResponseRequestId(context.Response, requestId);
             }
 
             RequestIdContext.Current = null;

@@ -6,6 +6,7 @@ public static class RequestIdUtilities
 {
     public const string HeaderName = "X-Request-ID";
     public const string HttpContextItemKey = "RequestId";
+    private const int MaxRequestIdLength = 128;
 
     public static string GetOrCreateRequestId(HttpContext context)
     {
@@ -45,7 +46,37 @@ public static class RequestIdUtilities
         }
 
         var value = headerValue.ToString();
-        return string.IsNullOrWhiteSpace(value) ? null : value;
+        return IsValidRequestId(value) ? value : null;
+    }
+
+    internal static bool IsValidRequestId(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > MaxRequestIdLength)
+        {
+            return false;
+        }
+
+        foreach (var character in value)
+        {
+            if (character < 0x20 || character > 0x7E)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    internal static void TrySetResponseRequestId(HttpResponse response, string requestId)
+    {
+        try
+        {
+            response.Headers[HeaderName] = requestId;
+        }
+        catch
+        {
+            // Avoid masking upstream exceptions when the response header cannot be written.
+        }
     }
 }
 
