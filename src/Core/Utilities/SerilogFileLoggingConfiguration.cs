@@ -8,6 +8,7 @@ using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;
 using Serilog.Sinks.Async;
+using Serilog.Sinks.File;
 
 namespace Bit.Core.Utilities;
 
