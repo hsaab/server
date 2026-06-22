@@ -5,7 +5,6 @@ using Serilog;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
-using Serilog.Extensions.Logging;
 using Serilog.Formatting;
 using Serilog.Formatting.Compact;
 using Serilog.Formatting.Display;

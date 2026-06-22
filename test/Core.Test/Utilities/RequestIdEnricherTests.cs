@@ -4,6 +4,7 @@ using NSubstitute;
 using Serilog.Core;
 using Serilog.Events;
 using Serilog.Parsing;
+using Xunit;
 
 namespace Bit.Core.Test.Utilities;
 
