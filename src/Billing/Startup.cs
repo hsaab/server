@@ -126,7 +126,7 @@ public class Startup
         IWebHostEnvironment env)
     {
         // Add general security headers
-        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseBitwardenSecurityHeaders();
 
         if (env.IsDevelopment())
         {

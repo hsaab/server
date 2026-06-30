@@ -96,7 +96,7 @@ public class Startup
         ILogger<Startup> logger)
     {
         // Add general security headers
-        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseBitwardenSecurityHeaders();
 
         if (!environment.IsDevelopment())
         {

@@ -72,6 +72,8 @@ public class Startup
             app.UseMiddleware<PlayIdMiddleware>();
         }
 
+        app.UseMiddleware<RequestIdMiddleware>();
+
         if (!env.IsDevelopment())
         {
             app.UseExceptionHandler("/Home/Error");

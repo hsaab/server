@@ -583,6 +583,13 @@ public static class ServiceCollectionExtensions
         return globalSettings;
     }
 
+    public static IApplicationBuilder UseBitwardenSecurityHeaders(this IApplicationBuilder app)
+    {
+        app.UseMiddleware<RequestIdMiddleware>();
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+        return app;
+    }
+
     public static void UseDefaultMiddleware(this IApplicationBuilder app,
         IWebHostEnvironment env, GlobalSettings globalSettings)
     {

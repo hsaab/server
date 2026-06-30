@@ -40,7 +40,7 @@ public class Startup
     public void Configure(IApplicationBuilder app)
     {
         // Add general security headers
-        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseBitwardenSecurityHeaders();
         app.UseRouting();
         app.UseEndpoints(endpoints =>
         {

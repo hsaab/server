@@ -71,7 +71,7 @@ public static class LoggerFactoryExtensions
                     .Build();
             }
 
-            logging.AddFile(loggingConfiguration);
+            logging.AddBitwardenFileLogging(loggingConfiguration);
         });
     }
 

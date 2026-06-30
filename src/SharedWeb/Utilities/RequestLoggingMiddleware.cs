@@ -29,7 +29,8 @@ public sealed class RequestLoggingMiddleware
             GetHeaderValue(context, "user-agent"),
             GetHeaderValue(context, "device-type"),
             GetHeaderValue(context, "device-type"),
-            GetHeaderValue(context, "bitwarden-client-version"))))
+            GetHeaderValue(context, "bitwarden-client-version"),
+            RequestIdContext.Current)))
         {
             return _next(context);
         }
@@ -50,13 +51,14 @@ public sealed class RequestLoggingMiddleware
     {
         private string? _cachedToString;
 
-        public RequestLogScope(string? ipAddress, string? userAgent, string? deviceType, string? origin, string? clientVersion)
+        public RequestLogScope(string? ipAddress, string? userAgent, string? deviceType, string? origin, string? clientVersion, string? requestId)
         {
             IpAddress = ipAddress;
             UserAgent = userAgent;
             DeviceType = deviceType;
             Origin = origin;
             ClientVersion = clientVersion;
+            RequestId = requestId;
         }
 
         public KeyValuePair<string, object?> this[int index]
@@ -83,18 +85,23 @@ public sealed class RequestLoggingMiddleware
                 {
                     return new KeyValuePair<string, object?>(nameof(ClientVersion), ClientVersion);
                 }
+                else if (index == 5)
+                {
+                    return new KeyValuePair<string, object?>(nameof(RequestId), RequestId);
+                }
 
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
         }
 
-        public int Count => 5;
+        public int Count => 6;
 
         public string? IpAddress { get; }
         public string? UserAgent { get; }
         public string? DeviceType { get; }
         public string? Origin { get; }
         public string? ClientVersion { get; }
+        public string? RequestId { get; }
 
         public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
         {
@@ -107,7 +114,7 @@ public sealed class RequestLoggingMiddleware
 
         public override string ToString()
         {
-            _cachedToString ??= $"IpAddress:{IpAddress} UserAgent:{UserAgent} DeviceType:{DeviceType} Origin:{Origin} ClientVersion:{ClientVersion}";
+            _cachedToString ??= $"IpAddress:{IpAddress} UserAgent:{UserAgent} DeviceType:{DeviceType} Origin:{Origin} ClientVersion:{ClientVersion} RequestId:{RequestId}";
             return _cachedToString;
         }
     }

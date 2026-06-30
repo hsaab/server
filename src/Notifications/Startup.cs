@@ -84,7 +84,7 @@ public class Startup
         GlobalSettings globalSettings)
     {
         // Add general security headers
-        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseBitwardenSecurityHeaders();
 
         // Forwarding Headers
         if (globalSettings.SelfHosted)
